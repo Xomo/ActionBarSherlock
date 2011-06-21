@@ -47,6 +47,8 @@ import android.view.KeyEvent;
 import android.view.View;
 import android.view.ViewGroup.LayoutParams;
 
+import com.google.android.maps.MapActivity;
+
 /**
  * Base class for activities that want to use the support-based ActionBar,
  * Fragment, and Loader APIs.
@@ -68,7 +70,7 @@ import android.view.ViewGroup.LayoutParams;
  * state, this may be a snapshot slightly before what the user last saw.</p>
  * </ul>
  */
-public class FragmentActivity extends Activity {
+public class FragmentActivity extends MapActivity {
 	private static final String TAG = "FragmentActivity";
 	private static final boolean DEBUG = false;
 	
@@ -1056,5 +1058,10 @@ public class FragmentActivity extends Activity {
 			lm.updateActivity(this);
 		}
 		return lm;
+	}
+
+	@Override
+	protected boolean isRouteDisplayed() {
+		return false;
 	}
 }
