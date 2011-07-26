@@ -3,11 +3,11 @@
 <manifest
 	xmlns:android="http://schemas.android.com/apk/res/android"
 	package="com.actionbarsherlock"
-	android:versionCode="7"
-	android:versionName="3.0.1">
+	android:versionCode="10"
+	android:versionName="3.1.0">
 	
     <uses-sdk
     	android:minSdkVersion="4"
-    	android:targetSdkVersion="12" />
+    	android:targetSdkVersion="13" />
 
 </manifest>

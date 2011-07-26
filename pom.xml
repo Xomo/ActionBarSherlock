@@ -6,7 +6,7 @@
 	<groupId>com.actionbarsherlock</groupId>
 	<artifactId>parent</artifactId>
 	<packaging>pom</packaging>
-	<version>3.0.1</version>
+	<version>3.1.0</version>
 
 	<name>ActionBarSherlock (Parent)</name>
 	<description>Android library for implementing the action bar design pattern using the native ActionBar on 3.0+ and a custom implementation on pre-3.0 all through the same API.</description>
@@ -21,22 +21,15 @@
 			</activation>
 			<modules>
 				<module>library</module>
-				<module>sample-featuredemo</module>
-				<!--module>sample-hcgallery</module-->
-				<module>sample-shakespeare</module>
-				<module>sample-styled</module>
+				<module>samples</module>
 			</modules>
 		</profile>
 		<profile>
 			<id>test</id>
 			<modules>
 				<module>library</module>
-				<module>sample-featuredemo</module>
-				<!--module>sample-hcgallery</module-->
-				<module>sample-shakespeare</module>
-				<module>sample-styled</module>
-				<module>test-app</module>
-				<module>test-runner</module>
+				<module>samples</module>
+				<module>test</module>
 			</modules>
 		</profile>
 	</profiles>
@@ -95,9 +88,11 @@
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
 
+		<apk.prefix>actionbarsherlock</apk.prefix>
+
 		<java.version>1.6</java.version>
-		<android.version>3.1_r1</android.version>
-		<android.platform>12</android.platform>
+		<android.version>3.2_r1</android.version>
+		<android.platform>13</android.platform>
 	</properties>
 
 	<dependencyManagement>
@@ -129,9 +124,15 @@
 				</plugin>
 
 				<plugin>
+					<groupId>org.apache.maven.plugins</groupId>
+					<artifactId>maven-javadoc-plugin</artifactId>
+					<version>2.8</version>
+				</plugin>
+
+				<plugin>
 					<groupId>com.jayway.maven.plugins.android.generation2</groupId>
 					<artifactId>maven-android-plugin</artifactId>
-					<version>2.9.0-beta-4</version>
+					<version>2.9.0-beta-5</version>
 					<configuration>
 						<sdk>
 							<platform>${android.platform}</platform>

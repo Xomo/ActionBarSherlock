@@ -1,7 +1,68 @@
 Change Log
 ===============================================================================
 
-Version 3.0.1 *(2010-06-08)*
+Version 3.1.0 *(2011-07-22)*
+----------------------------
+
+Due to shortcomings in the Android theming system, a small change must be made
+in how this library handles themes. If you were using a custom style for
+`actionBarStyle` you must now specify its attributes in the root of the theme
+and prefix them with 'ab'.
+
+You can see an example of this in the `SherlockCustom` theme in
+`samples/demos/res/values/styles.xml`.
+
+* Library now uses the `r3` version of the compatibility library for its base.
+* `actionBarStyle` is no longer a valid theme attribute (see note above).
+* Added the demo project included with the new compatibility library under
+  `samples/demos/` and merged in the old 'featuredemo'.
+* Dividers are now shown on pre-3.0 devices between all action items.
+* `Window.FEATURE_ACTION_BAR_OVERLAY` is now honored on pre-3.0 devices.
+* Inflation of XML menu resources will now honor `android:actionLayout` and
+  `android:actionViewClass` attributes.
+* Buttons for displaying the determinate and indeterminate progress bars have
+  been added to the feature toggle demo.
+* Added support for indeterminate progress bar. Due to the `final` modifier on
+  the native type, you must use `setIndeterminateProgressBarVisibility(Boolean)`
+  and pass `Boolean.TRUE` or `Boolean.FALSE`.
+* Fix: `MenuBuilder#removeItem(int)` and `MenuBuilder#findItem(int)` throwing
+  `IndexOutOfBoundsException`s when the item was not found.
+* Fix: Theme attributes for home item data (e.g., icon, logo) will not be
+  overwritten by the special `MenuItem` instance for home.
+* Fix: Native strings can now be specified for an XML menu `<item>` in
+  `android:title` and `android:titleCondensed`.
+* `Window.FEATURE_ENABLE_ACTION_BAR_WATSON_TEXT` is now
+  `Window.FEATURE_ACTION_BAR_ITEM_TEXT`.
+* `Widget.Sherlock.Spinner.DropDown.ActionBar` and
+  `Widget.Sherlock.Light.Spinner.DropDown.ActionBar` styles are now
+  `Widget.Sherlock.Spinner` and `Widget.Sherlock.Light.Spinner`, respectively.
+* `Widget.Sherlock.ActionBarView_TabXXX` styles are now
+  `Widget.Sherlock.ActionBar.TabXXX`.
+
+
+Version 3.0.3 *(2011-07-17)*
+----------------------------
+
+This version is a hotfix for incompatibilities introduced with the SDKs for
+3.1 r2 and 3.2 r1. Due to unavoidable changes in the underlying SDK, the library
+must now be compiled against API level 13.
+
+* `actionModeStyle` and `actionModePopupWindowStyle` are no longer valid theme
+  attributes.
+
+
+Version 3.0.2 *(2011-06-23)*
+----------------------------
+
+* Sub-menus for action items are now shown in a list dialog.
+* Moved certain classes to the `com.actionbarsherlock.internal` package which
+  were not meant for public consumption. Despite being given `public` scope in
+  this new package, these classes should **NOT** be used under any circumstances
+  as their API can be considered highly volatile and is subject to change often
+  and without warning.
+
+
+Version 3.0.1 *(2011-06-08)*
 ----------------------------
 
 * Fix: `onOptionsItemSelected()` not being called in fragments if the activity
@@ -14,7 +75,7 @@ Version 3.0.1 *(2010-06-08)*
   the view.
 
 
-Version 3.0.0 *(2010-06-05)*
+Version 3.0.0 *(2011-06-05)*
 ----------------------------
 
 The API has been rewritten to mimic that of the native action bar. As a result,
