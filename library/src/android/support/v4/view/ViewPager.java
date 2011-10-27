@@ -16,6 +16,7 @@
 
 package android.support.v4.view;
 
+import android.os.Build;
 import android.os.Parcel;
 import android.os.Parcelable;
 
@@ -408,6 +409,9 @@ public class ViewPager extends ViewGroup {
         int lastPos = -1;
         for (int i=0; i<mItems.size(); i++) {
             ItemInfo ii = mItems.get(i);
+            if (ii.position == mCurItem) {
+                mAdapter.onItemSelected(mCurItem, ii.object);
+            }
             if ((ii.position < startPos || ii.position > endPos) && !ii.scrolling) {
                 if (DEBUG) Log.i(TAG, "removing: " + ii.position + " @ " + i);
                 mItems.remove(i);
@@ -433,12 +437,18 @@ public class ViewPager extends ViewGroup {
 
         // Add any new pages we need at the end.
         lastPos = mItems.size() > 0 ? mItems.get(mItems.size()-1).position : -1;
+        boolean first = (lastPos == -1);
         if (lastPos < endPos) {
             lastPos++;
             lastPos = lastPos > startPos ? lastPos : startPos;
             while (lastPos <= endPos) {
                 if (DEBUG) Log.i(TAG, "appending: " + lastPos);
                 addNewItem(lastPos, -1);
+                if (first && (lastPos == mCurItem)) {
+                    //Creating first item for the first time
+                    mAdapter.onItemSelected(mCurItem, mItems.get(mItems.size() - 1).object);
+                    first = false;
+                }
                 lastPos++;
             }
         }
@@ -591,7 +601,7 @@ public class ViewPager extends ViewGroup {
             final View child = getChildAt(i);
             if (child.getVisibility() != GONE) {
                 if (DEBUG) Log.v(TAG, "Measuring #" + i + " " + child
-		        + ": " + mChildWidthMeasureSpec);
+                + ": " + mChildWidthMeasureSpec);
                 child.measure(mChildWidthMeasureSpec, mChildHeightMeasureSpec);
             }
         }
@@ -626,8 +636,8 @@ public class ViewPager extends ViewGroup {
                 int childLeft = getPaddingLeft() + loff;
                 int childTop = getPaddingTop();
                 if (DEBUG) Log.v(TAG, "Positioning #" + i + " " + child + " f=" + ii.object
-		        + ":" + childLeft + "," + childTop + " " + child.getMeasuredWidth()
-		        + "x" + child.getMeasuredHeight());
+                + ":" + childLeft + "," + childTop + " " + child.getMeasuredWidth()
+                + "x" + child.getMeasuredHeight());
                 child.layout(childLeft, childTop,
                         childLeft + child.getMeasuredWidth(),
                         childTop + child.getMeasuredHeight());
@@ -742,7 +752,7 @@ public class ViewPager extends ViewGroup {
                 * of the down event.
                 */
                 final int activePointerId = mActivePointerId;
-                if (activePointerId == INVALID_POINTER) {
+                if (activePointerId == INVALID_POINTER && Build.VERSION.SDK_INT > Build.VERSION_CODES.DONUT) {
                     // If we don't have a valid id, the touch down wasn't on content.
                     break;
                 }

@@ -30,304 +30,378 @@ import android.view.KeyEvent;
 
 /**
  * An implementation of the {@link android.view.Menu} interface for use in
- * inflating menu XML resources to be added to a third-party action bar. 
- * 
+ * inflating menu XML resources to be added to a third-party action bar.
+ *
  * @author Jake Wharton <jakewharton@gmail.com>
  * @see <a href="http://android.git.kernel.org/?p=platform/frameworks/base.git;a=blob;f=core/java/com/android/internal/view/menu/MenuBuilder.java">com.android.internal.view.menu.MenuBuilder</a>
  */
 public class MenuBuilder implements Menu {
-	private static final int DEFAULT_ITEM_ID = 0;
-	private static final int DEFAULT_GROUP_ID = 0;
-	private static final int DEFAULT_ORDER = 0;
-	
-	public static final int NUM_TYPES = 2;
-	public static final int TYPE_WATSON = 0;
-	public static final int TYPE_ACTION_BAR = 1;
-	
-	
-	
-	public interface Callback {
-		public boolean onMenuItemSelected(MenuBuilder menu, MenuItem item);
-	}
-	
-	
-	
-	/** Context used for resolving any resources. */
-	private final Context mContext;
-	
-	/** Child {@link ActionBarMenuItem} items. */
-	private final List<MenuItemImpl> mItems;
-	
-	/** Menu callback that will receive various events. */
-	private Callback mCallback;
-	
-	
-	
-	/**
-	 * Create a new action bar menu.
-	 * 
-	 * @param context Context used if resource resolution is required.
-	 */
-	public MenuBuilder(Context context) {
-		this.mContext = context;
-		this.mItems = new ArrayList<MenuItemImpl>();
-	}
+    private static final int DEFAULT_ITEM_ID = 0;
+    private static final int DEFAULT_GROUP_ID = 0;
+    private static final int DEFAULT_ORDER = 0;
 
-	
-	
-	public void setCallback(Callback callback) {
-		mCallback = callback;
-	}
-	
-	public Callback getCallback() {
-		return mCallback;
-	}
-	
-	/**
-	 * Gets the root menu (if this is a submenu, find its root menu).
-	 * 
-	 * @return The root menu.
-	 */
-	public MenuBuilder getRootMenu() {
-		return this;
-	}
-	
-	/**
-	 * Special method to create a detached child item of this menu with the
-	 * specified ID. This should ONLY be used internally for the creation
-	 * of the home item.
-	 * 
-	 * @param itemId ID of detached item.
-	 * @return Item instance.
-	 */
-	public MenuItemImpl addDetached(int itemId) {
-		return new MenuItemImpl(this, itemId, -1, -1, null);
-	}
-	
-	/**
-	 * Get a list of the items contained in this menu.
-	 * 
-	 * @return List of {@link MenuItemImpl}s.
-	 */
-	public final List<MenuItemImpl> getItems() {
-		return this.mItems;
-	}
-	
-	final MenuItemImpl remove(int index) {
-		return this.mItems.remove(index);
-	}
-	
-	final Context getContext() {
-		return this.mContext;
-	}
+    public static final int NUM_TYPES = 2;
+    public static final int TYPE_ACTION_BAR = 0;
+    public static final int TYPE_NATIVE = 1;
 
-	void setExclusiveItemChecked(MenuItem item) {
-		final int group = item.getGroupId();
-		
-		final int N = mItems.size();
-		for (int i = 0; i < N; i++) {
-			MenuItemImpl curItem = mItems.get(i);
-			if (curItem.getGroupId() == group) {
-				if (!curItem.isExclusiveCheckable()) continue;
-				if (!curItem.isCheckable()) continue;
-				
-				// Check the item meant to be checked, uncheck the others (that are in the group)
-				curItem.setCheckedInt(curItem == item);
-			}
-		}
-	}
-	
-	// ** Menu Methods ** \\
-	
-	@Override
-	public MenuItemImpl add(CharSequence title) {
-		return this.add(DEFAULT_ITEM_ID, DEFAULT_GROUP_ID, DEFAULT_ORDER, title);
-	}
+    /**
+     * This is the part of an order integer that the user can provide.
+     * @hide
+     */
+    static final int USER_MASK = 0x0000ffff;
 
-	@Override
-	public MenuItemImpl add(int titleResourceId) {
-		return this.add(DEFAULT_GROUP_ID, DEFAULT_ITEM_ID, DEFAULT_ORDER, titleResourceId);
-	}
+    /**
+     * Bit shift of the user portion of the order integer.
+     * @hide
+     */
+    static final int USER_SHIFT = 0;
 
-	@Override
-	public MenuItemImpl add(int groupId, int itemId, int order, int titleResourceId) {
-		String title = null;
-		if (titleResourceId != 0) {
-			title = this.mContext.getResources().getString(titleResourceId);
-		}
-		return this.add(groupId, itemId, order, title);
-	}
+    /**
+     * This is the part of an order integer that supplies the category of the
+     * item.
+     * @hide
+     */
 
-	@Override
-	public MenuItemImpl add(int groupId, int itemId, int order, CharSequence title) {
-		MenuItemImpl item = new MenuItemImpl(this, itemId, groupId, order, title);
-		this.mItems.add(item);
-		return item;
-	}
+    static final int CATEGORY_MASK = 0xffff0000;
 
-	@Override
-	public SubMenuBuilder addSubMenu(CharSequence title) {
-		return this.addSubMenu(DEFAULT_GROUP_ID, DEFAULT_ITEM_ID, DEFAULT_ORDER, title);
-	}
+    /**
+     * Bit shift of the category portion of the order integer.
+     * @hide
+     */
+    static final int CATEGORY_SHIFT = 16;
 
-	@Override
-	public SubMenuBuilder addSubMenu(int titleResourceId) {
-		return this.addSubMenu(DEFAULT_GROUP_ID, DEFAULT_ITEM_ID, DEFAULT_ORDER, titleResourceId);
-	}
+    private static final int[] CATEGORY_TO_ORDER = new int[] {
+        1, /* No category */
+        4, /* CONTAINER */
+        5, /* SYSTEM */
+        3, /* SECONDARY */
+        2, /* ALTERNATIVE */
+        0, /* SELECTED_ALTERNATIVE */
+    };
 
-	@Override
-	public SubMenuBuilder addSubMenu(int groupId, int itemId, int order, int titleResourceId) {
-		String title = this.mContext.getResources().getString(titleResourceId);
-		return this.addSubMenu(groupId, itemId, order, title);
-	}
 
-	@Override
-	public SubMenuBuilder addSubMenu(int groupId, int itemId, int order, CharSequence title) {
-		MenuItemImpl item = (MenuItemImpl)this.add(groupId, itemId, order, title);
-		SubMenuBuilder subMenu = new SubMenuBuilder(this.mContext, this, item);
-		item.setSubMenu(subMenu);
-		return subMenu;
-	}
 
-	@Override
-	public void clear() {
-		this.mItems.clear();
-	}
+    public interface Callback {
+        public boolean onMenuItemSelected(MenuBuilder menu, MenuItem item);
+    }
 
-	@Override
-	public void close() {}
 
-	@Override
-	public MenuItemImpl findItem(int itemId) {
-		for (MenuItemImpl item : this.mItems) {
-			if (item.getItemId() == itemId) {
-				return item;
-			}
-		}
-		return null;
-	}
 
-	@Override
-	public MenuItemImpl getItem(int index) {
-		return this.mItems.get(index);
-	}
+    /** Context used for resolving any resources. */
+    private final Context mContext;
 
-	@Override
-	public boolean hasVisibleItems() {
-		for (MenuItem item : this.mItems) {
-			if (item.isVisible()) {
-				return true;
-			}
-		}
-		return false;
-	}
+    /** Child {@link ActionBarMenuItem} items. */
+    private final ArrayList<MenuItemImpl> mItems;
 
-	@Override
-	public void removeItem(int itemId) {
-		final int size = this.mItems.size();
-		for (int i = 0; i < size; i++) {
-			if (this.mItems.get(i).getItemId() == itemId) {
-				this.mItems.remove(i);
-				return;
-			}
-		}
-	}
+    /** Menu callback that will receive various events. */
+    private Callback mCallback;
 
-	@Override
-	public int size() {
-		return this.mItems.size();
-	}
-	
-	@Override
-	public int addIntentOptions(int groupId, int itemId, int order, ComponentName caller, Intent[] specifics, Intent intent, int flags, android.view.MenuItem[] outSpecificItems) {
-		PackageManager pm = mContext.getPackageManager();
-		final List<ResolveInfo> lri =
-				pm.queryIntentActivityOptions(caller, specifics, intent, 0);
-		final int N = lri != null ? lri.size() : 0;
+    private boolean mShowsActionItemText;
 
-		if ((flags & FLAG_APPEND_TO_GROUP) == 0) {
-			removeGroup(groupId);
-		}
 
-		for (int i=0; i<N; i++) {
-			final ResolveInfo ri = lri.get(i);
-			Intent rintent = new Intent(
-				ri.specificIndex < 0 ? intent : specifics[ri.specificIndex]);
-			rintent.setComponent(new ComponentName(
-					ri.activityInfo.applicationInfo.packageName,
-					ri.activityInfo.name));
-			final MenuItem item = add(groupId, itemId, order, ri.loadLabel(pm))
-					.setIcon(ri.loadIcon(pm))
-					.setIntent(rintent);
-			if (outSpecificItems != null && ri.specificIndex >= 0) {
-				outSpecificItems[ri.specificIndex] = item;
-			}
-		}
 
-		return N;
-	}
+    /**
+     * Create a new action bar menu.
+     *
+     * @param context Context used if resource resolution is required.
+     */
+    public MenuBuilder(Context context) {
+        this.mContext = context;
+        this.mItems = new ArrayList<MenuItemImpl>();
+    }
 
-	@Override
-	public boolean isShortcutKey(int keyCode, KeyEvent event) {
-		return false;
-	}
 
-	@Override
-	public boolean performIdentifierAction(int id, int flags) {
-		throw new RuntimeException("Method not supported.");
-	}
+    /**
+     * Adds an item to the menu.  The other add methods funnel to this.
+     *
+     * @param itemId Unique item ID.
+     * @param groupId Group ID.
+     * @param order Order.
+     * @param title Item title.
+     * @return MenuItem instance.
+     */
+    private MenuItem addInternal(int itemId, int groupId, int order, CharSequence title) {
+        final int ordering = getOrdering(order);
+        final MenuItemImpl item = new MenuItemImpl(this, groupId, itemId, order, ordering, title, MenuItem.SHOW_AS_ACTION_NEVER);
 
-	@Override
-	public boolean performShortcut(int keyCode, KeyEvent event, int flags) {
-		return false;
-	}
+        mItems.add(findInsertIndex(mItems, ordering), item);
+        return item;
+    }
 
-	@Override
-	public void removeGroup(int groupId) {
-		final int size = this.mItems.size();
-		for (int i = 0; i < size; i++) {
-			if (this.mItems.get(i).getGroupId() == groupId) {
-				this.mItems.remove(i);
-			}
-		}
-	}
+    private static int findInsertIndex(ArrayList<MenuItemImpl> items, int ordering) {
+        for (int i = items.size() - 1; i >= 0; i--) {
+            MenuItemImpl item = items.get(i);
+            if (item.getOrdering() <= ordering) {
+                return i + 1;
+            }
+        }
 
-	@Override
-	public void setGroupCheckable(int groupId, boolean checkable, boolean exclusive) {
-		final int N = mItems.size();
-		for (int i = 0; i < N; i++) {
-			MenuItemImpl item = mItems.get(i);
-			if (item.getGroupId() == groupId) {
-				item.setExclusiveCheckable(exclusive);
-				item.setCheckable(checkable);
-			}
-		}
-	}
+        return 0;
+    }
 
-	@Override
-	public void setGroupEnabled(int groupId, boolean enabled) {
-		final int size = this.mItems.size();
-		for (int i = 0; i < size; i++) {
-			MenuItemImpl item = mItems.get(i);
-			if (item.getGroupId() == groupId) {
-				item.setEnabled(enabled);
-			}
-		}
-	}
+    /**
+     * Returns the ordering across all items. This will grab the category from
+     * the upper bits, find out how to order the category with respect to other
+     * categories, and combine it with the lower bits.
+     *
+     * @param categoryOrder The category order for a particular item (if it has
+     *            not been or/add with a category, the default category is
+     *            assumed).
+     * @return An ordering integer that can be used to order this item across
+     *         all the items (even from other categories).
+     */
+    private static int getOrdering(int categoryOrder) {
+        final int index = (categoryOrder & CATEGORY_MASK) >> CATEGORY_SHIFT;
 
-	@Override
-	public void setGroupVisible(int groupId, boolean visible) {
-		final int size = this.mItems.size();
-		for (int i = 0; i < size; i++) {
-			MenuItemImpl item = mItems.get(i);
-			if (item.getGroupId() == groupId) {
-				item.setVisible(visible);
-			}
-		}
-	}
+        if (index < 0 || index >= CATEGORY_TO_ORDER.length) {
+            throw new IllegalArgumentException("order does not contain a valid category.");
+        }
 
-	@Override
-	public void setQwertyMode(boolean isQwerty) {
-		throw new RuntimeException("Method not supported.");
-	}
+        return (CATEGORY_TO_ORDER[index] << CATEGORY_SHIFT) | (categoryOrder & USER_MASK);
+    }
+
+    public void setCallback(Callback callback) {
+        mCallback = callback;
+    }
+
+    public Callback getCallback() {
+        return mCallback;
+    }
+
+    public boolean getShowsActionItemText() {
+        return mShowsActionItemText;
+    }
+
+    public void setShowsActionItemText(boolean showsActionItemText) {
+        mShowsActionItemText = showsActionItemText;
+    }
+
+    /**
+     * Gets the root menu (if this is a submenu, find its root menu).
+     *
+     * @return The root menu.
+     */
+    public MenuBuilder getRootMenu() {
+        return this;
+    }
+
+    /**
+     * Get a list of the items contained in this menu.
+     *
+     * @return List of {@link MenuItemImpl}s.
+     */
+    public final List<MenuItemImpl> getItems() {
+        return this.mItems;
+    }
+
+    final MenuItemImpl remove(int index) {
+        return this.mItems.remove(index);
+    }
+
+    final Context getContext() {
+        return this.mContext;
+    }
+
+    void setExclusiveItemChecked(MenuItem item) {
+        final int group = item.getGroupId();
+
+        final int N = mItems.size();
+        for (int i = 0; i < N; i++) {
+            MenuItemImpl curItem = mItems.get(i);
+            if (curItem.getGroupId() == group) {
+                if (!curItem.isExclusiveCheckable()) continue;
+                if (!curItem.isCheckable()) continue;
+
+                // Check the item meant to be checked, uncheck the others (that are in the group)
+                curItem.setCheckedInt(curItem == item);
+            }
+        }
+    }
+
+    // ** Menu Methods ** \\
+
+    @Override
+    public MenuItem add(int titleResourceId) {
+        return addInternal(0, 0, 0, mContext.getResources().getString(titleResourceId));
+    }
+
+    @Override
+    public MenuItem add(int groupId, int itemId, int order, int titleResourceId) {
+        return addInternal(itemId, groupId, order, mContext.getResources().getString(titleResourceId));
+    }
+
+    @Override
+    public MenuItem add(int groupId, int itemId, int order, CharSequence title) {
+        return addInternal(itemId, groupId, order, title);
+    }
+
+    @Override
+    public MenuItem add(CharSequence title) {
+        return addInternal(0, 0, 0, title);
+    }
+
+    @Override
+    public SubMenuBuilder addSubMenu(CharSequence title) {
+        return this.addSubMenu(DEFAULT_GROUP_ID, DEFAULT_ITEM_ID, DEFAULT_ORDER, title);
+    }
+
+    @Override
+    public SubMenuBuilder addSubMenu(int titleResourceId) {
+        return this.addSubMenu(DEFAULT_GROUP_ID, DEFAULT_ITEM_ID, DEFAULT_ORDER, titleResourceId);
+    }
+
+    @Override
+    public SubMenuBuilder addSubMenu(int groupId, int itemId, int order, int titleResourceId) {
+        String title = this.mContext.getResources().getString(titleResourceId);
+        return this.addSubMenu(groupId, itemId, order, title);
+    }
+
+    @Override
+    public SubMenuBuilder addSubMenu(int groupId, int itemId, int order, CharSequence title) {
+        MenuItemImpl item = (MenuItemImpl)this.add(groupId, itemId, order, title);
+        SubMenuBuilder subMenu = new SubMenuBuilder(this.mContext, this, item);
+        item.setSubMenu(subMenu);
+        return subMenu;
+    }
+
+    @Override
+    public void clear() {
+        this.mItems.clear();
+    }
+
+    @Override
+    public void close() {}
+
+    @Override
+    public MenuItemImpl findItem(int itemId) {
+        for (MenuItemImpl item : this.mItems) {
+            if (item.getItemId() == itemId) {
+                return item;
+            }
+        }
+        return null;
+    }
+
+    @Override
+    public MenuItemImpl getItem(int index) {
+        return this.mItems.get(index);
+    }
+
+    @Override
+    public boolean hasVisibleItems() {
+        for (MenuItem item : this.mItems) {
+            if (item.isVisible()) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    @Override
+    public void removeItem(int itemId) {
+        final int size = this.mItems.size();
+        for (int i = 0; i < size; i++) {
+            if (this.mItems.get(i).getItemId() == itemId) {
+                this.mItems.remove(i);
+                return;
+            }
+        }
+    }
+
+    @Override
+    public int size() {
+        return this.mItems.size();
+    }
+
+    @Override
+    public int addIntentOptions(int groupId, int itemId, int order, ComponentName caller, Intent[] specifics, Intent intent, int flags, android.view.MenuItem[] outSpecificItems) {
+        PackageManager pm = mContext.getPackageManager();
+        final List<ResolveInfo> lri =
+                pm.queryIntentActivityOptions(caller, specifics, intent, 0);
+        final int N = lri != null ? lri.size() : 0;
+
+        if ((flags & FLAG_APPEND_TO_GROUP) == 0) {
+            removeGroup(groupId);
+        }
+
+        for (int i=0; i<N; i++) {
+            final ResolveInfo ri = lri.get(i);
+            Intent rintent = new Intent(
+                ri.specificIndex < 0 ? intent : specifics[ri.specificIndex]);
+            rintent.setComponent(new ComponentName(
+                    ri.activityInfo.applicationInfo.packageName,
+                    ri.activityInfo.name));
+            final MenuItem item = add(groupId, itemId, order, ri.loadLabel(pm))
+                    .setIcon(ri.loadIcon(pm))
+                    .setIntent(rintent);
+            if (outSpecificItems != null && ri.specificIndex >= 0) {
+                outSpecificItems[ri.specificIndex] = item;
+            }
+        }
+
+        return N;
+    }
+
+    @Override
+    public boolean isShortcutKey(int keyCode, KeyEvent event) {
+        return false;
+    }
+
+    @Override
+    public boolean performIdentifierAction(int id, int flags) {
+        throw new RuntimeException("Method not supported.");
+    }
+
+    @Override
+    public boolean performShortcut(int keyCode, KeyEvent event, int flags) {
+        return false;
+    }
+
+    @Override
+    public void removeGroup(int groupId) {
+        for (int i = mItems.size() - 1; i > 0; i--) {
+            if (mItems.get(i).getGroupId() == groupId) {
+                mItems.remove(i);
+            }
+        }
+    }
+
+    @Override
+    public void setGroupCheckable(int groupId, boolean checkable, boolean exclusive) {
+        final int N = mItems.size();
+        for (int i = 0; i < N; i++) {
+            MenuItemImpl item = mItems.get(i);
+            if (item.getGroupId() == groupId) {
+                item.setExclusiveCheckable(exclusive);
+                item.setCheckable(checkable);
+            }
+        }
+    }
+
+    @Override
+    public void setGroupEnabled(int groupId, boolean enabled) {
+        final int size = this.mItems.size();
+        for (int i = 0; i < size; i++) {
+            MenuItemImpl item = mItems.get(i);
+            if (item.getGroupId() == groupId) {
+                item.setEnabled(enabled);
+            }
+        }
+    }
+
+    @Override
+    public void setGroupVisible(int groupId, boolean visible) {
+        final int size = this.mItems.size();
+        for (int i = 0; i < size; i++) {
+            MenuItemImpl item = mItems.get(i);
+            if (item.getGroupId() == groupId) {
+                item.setVisible(visible);
+            }
+        }
+    }
+
+    @Override
+    public void setQwertyMode(boolean isQwerty) {
+        throw new RuntimeException("Method not supported.");
+    }
 }
