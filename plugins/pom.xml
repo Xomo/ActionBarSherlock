@@ -11,11 +11,12 @@
 	<parent>
 		<groupId>com.actionbarsherlock</groupId>
 		<artifactId>parent</artifactId>
-		<version>3.3.1</version>
+		<version>3.4.2</version>
 		<relativePath>../pom.xml</relativePath>
 	</parent>
 
 	<modules>
 		<module>maps</module>
+		<module>preference</module>
 	</modules>
 </project>

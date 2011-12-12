@@ -16,8 +16,6 @@
 
 package android.support.v4.app;
 
-import java.lang.ref.WeakReference;
-
 import android.os.Parcelable;
 import android.support.v4.view.PagerAdapter;
 import android.util.Log;
@@ -25,8 +23,8 @@ import android.view.View;
 
 /**
  * Implementation of {@link android.support.v4.view.PagerAdapter} that
- * represents each page as a {@link Fragment} that is persistently
- * kept in the fragment manager as long as the user can return to the page.
+ * represents each page as a {@link Fragment} that is persistently kept in the
+ * fragment manager as long as the user can return to the page.
  */
 public abstract class FragmentPagerAdapter extends PagerAdapter {
     private static final String TAG = "FragmentPagerAdapter";
@@ -34,9 +32,7 @@ public abstract class FragmentPagerAdapter extends PagerAdapter {
 
     private final FragmentManager mFragmentManager;
     private FragmentTransaction mCurTransaction = null;
-    private WeakReference<Fragment> mLastFragment = null;
-    private int mLastPosition = -1;
-    private boolean mOptionsMenuPotentiallyStale;
+    private Fragment mCurrentPrimaryItem = null;
 
     public FragmentPagerAdapter(FragmentManager fm) {
         mFragmentManager = fm;
@@ -49,7 +45,6 @@ public abstract class FragmentPagerAdapter extends PagerAdapter {
 
     @Override
     public void startUpdate(View container) {
-        mOptionsMenuPotentiallyStale = false;
     }
 
     @Override
@@ -62,16 +57,19 @@ public abstract class FragmentPagerAdapter extends PagerAdapter {
         String name = makeFragmentName(container.getId(), position);
         Fragment fragment = mFragmentManager.findFragmentByTag(name);
         if (fragment != null) {
-            if (DEBUG) Log.v(TAG, "Attaching item #" + position + ": f=" + fragment);
+            if (DEBUG)
+                Log.v(TAG, "Attaching item #" + position + ": f=" + fragment);
             mCurTransaction.attach(fragment);
         } else {
             fragment = getItem(position);
-            if (DEBUG) Log.v(TAG, "Adding item #" + position + ": f=" + fragment);
-            mCurTransaction.add(container.getId(), fragment,
-                    makeFragmentName(container.getId(), position));
+            if (DEBUG)
+                Log.v(TAG, "Adding item #" + position + ": f=" + fragment);
+            mCurTransaction.add(container.getId(), fragment, makeFragmentName(container.getId(), position));
+        }
+        if (fragment != mCurrentPrimaryItem) {
+            fragment.setMenuVisibility(false);
         }
 
-        fragment.mExposesMenu = false;
         return fragment;
     }
 
@@ -80,44 +78,37 @@ public abstract class FragmentPagerAdapter extends PagerAdapter {
         if (mCurTransaction == null) {
             mCurTransaction = mFragmentManager.beginTransaction();
         }
-        Fragment fragment = (Fragment)object;
-        fragment.mExposesMenu = true;
-        if (DEBUG) Log.v(TAG, "Detaching item #" + position + ": f=" + fragment
-                + " v=" + fragment.getView());
-        mCurTransaction.detach(fragment);
+        if (DEBUG)
+            Log.v(TAG, "Detaching item #" + position + ": f=" + object + " v=" + ((Fragment) object).getView());
+        mCurTransaction.detach((Fragment) object);
     }
 
     @Override
-    public void onItemSelected(int position, Object object) {
-        if (position == mLastPosition) {
-            return;
+    public void setPrimaryItem(View container, int position, Object object) {
+        Fragment fragment = (Fragment) object;
+        if (fragment != mCurrentPrimaryItem) {
+            if (mCurrentPrimaryItem != null) {
+                mCurrentPrimaryItem.setMenuVisibility(false);
+            }
+            if (fragment != null) {
+                fragment.setMenuVisibility(true);
+            }
+            mCurrentPrimaryItem = fragment;
         }
-        if ((mLastFragment != null) && (mLastFragment.get() != null)) {
-            mLastFragment.get().mExposesMenu = false;
-        }
-        Fragment fragment = (Fragment)object;
-        fragment.mExposesMenu = true;
-        mLastFragment = new WeakReference<Fragment>(fragment);
-        mLastPosition = position;
-        mOptionsMenuPotentiallyStale = true;
     }
 
     @Override
     public void finishUpdate(View container) {
         if (mCurTransaction != null) {
-            mCurTransaction.commit();
+            mCurTransaction.commitAllowingStateLoss();
             mCurTransaction = null;
-            mOptionsMenuPotentiallyStale = true;
-        }
-        if (mOptionsMenuPotentiallyStale) {
             mFragmentManager.executePendingTransactions();
-            ((FragmentManagerImpl)mFragmentManager).mActivity.invalidateOptionsMenu();
         }
     }
 
     @Override
     public boolean isViewFromObject(View view, Object object) {
-        return ((Fragment)object).getView() == view;
+        return ((Fragment) object).getView() == view;
     }
 
     @Override
@@ -129,7 +120,7 @@ public abstract class FragmentPagerAdapter extends PagerAdapter {
     public void restoreState(Parcelable state, ClassLoader loader) {
     }
 
-    private static String makeFragmentName(int viewId, int index) {
+    public static String makeFragmentName(int viewId, int index) {
         return "android:switcher:" + viewId + ":" + index;
     }
 }

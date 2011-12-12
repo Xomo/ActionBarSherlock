@@ -15,10 +15,6 @@
 -->
 
 <resources xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
-    <!-- IF YOU ARE COMPILING THIS APPLICATION YOURSELF YOU NEED TO CHANGE THIS -->
-    <!-- See: http://code.google.com/android/add-ons/google-apis/mapkey.html -->
-    <string name="map_api_key">0GPE4Lb_ZG_rnk3YyJHd7pBAxP0BPBJvmZR_-Kw</string>
-
     <string name="activity_sample_code">ABS: Support Demos</string>
 
     <string name="hello_world"><b>Hello, <i>World!</i></b></string>
@@ -77,6 +73,8 @@
     <string name="fragment_arguments_embedded">From Attributes</string>
     <string name="fragment_arguments_embedded_land">Landscape Only</string>
 
+    <string name="fragment_custom_animation_support">Fragment/Custom Animation</string>
+
     <string name="fragment_hide_show_support">Fragment/Hide and Show</string>
 
     <string name="fragment_context_menu_support">Fragment/Context Menu</string>
@@ -132,9 +130,10 @@
 
     <string name="loader_throttle_support">Loader/Throttle</string>
 
-    <string name="map_warning">If you compiled this application yourself you need to specify your own API key in res/values/strings.xml</string>
-    <string name="map_activity">Map/Simple Activity</string>
-    <string name="map_fragment">Map/Simple Fragment</string>
-    <string name="map_activity_action_bar">Map/Activity (with Action Bar)</string>
-    <string name="map_fragment_action_bar">Map/Fragment (with Action Bar)</string>
+    <string name="local_service_broadcaster">Content/Local Service Broadcaster</string>
+
+    <string name="local_service_broadcaster_msg">Demonstrates use of LocalBroadcastManager
+        to communicate from a Service to an Activity.</string>
+    <string name="start_service">Start Service</string>
+    <string name="stop_service">Stop Service</string>
 </resources>
