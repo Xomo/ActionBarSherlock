@@ -14,6 +14,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AdapterView;
 import android.widget.FrameLayout;
+import android.widget.HorizontalScrollView;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ProgressBar;
@@ -66,6 +67,7 @@ public final class ActionBarView extends RelativeLayout {
     private final LinearLayout mActionsView;
 
     /** Container for all tab items. */
+    private final HorizontalScrollView mTabsScrollView;
     private final LinearLayout mTabsView;
 
     /**
@@ -191,6 +193,7 @@ public final class ActionBarView extends RelativeLayout {
         mSpinner = (Spinner)findViewById(R.id.abs__nav_list);
         mSpinner.setOnItemSelectedListener(mNavItemSelectedListener);
 
+        mTabsScrollView = (HorizontalScrollView) findViewById(R.id.abs__nav_tabs_layout);
         mTabsView = (LinearLayout)findViewById(R.id.abs__nav_tabs);
 
 
@@ -292,6 +295,7 @@ public final class ActionBarView extends RelativeLayout {
         mSpinner.setVisibility(isList ? View.VISIBLE : View.GONE);
 
         // Show tabs if in tabs navigation mode.
+        mTabsScrollView.setVisibility(isTab ? View.VISIBLE : View.GONE);
         mTabsView.setVisibility(isTab ? View.VISIBLE : View.GONE);
 
         //Show title view if we are not in list navigation, not showing custom
