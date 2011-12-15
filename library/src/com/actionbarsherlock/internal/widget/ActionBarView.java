@@ -295,7 +295,9 @@ public final class ActionBarView extends RelativeLayout {
         mSpinner.setVisibility(isList ? View.VISIBLE : View.GONE);
 
         // Show tabs if in tabs navigation mode.
-        mTabsScrollView.setVisibility(isTab ? View.VISIBLE : View.GONE);
+        if (mTabsScrollView != null) {
+            mTabsScrollView.setVisibility(isTab ? View.VISIBLE : View.GONE);
+        }
         mTabsView.setVisibility(isTab ? View.VISIBLE : View.GONE);
 
         //Show title view if we are not in list navigation, not showing custom
